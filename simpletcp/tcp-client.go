@@ -11,8 +11,9 @@ import (
 func main() {
 	conn, err := net.Dial("tcp", "127.0.0.1:8081")
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
+	defer conn.Close()
 
 	for {
 	 	reader := bufio.NewReader(os.Stdin)
@@ -30,6 +31,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		fmt.Print("Message from server: "+message)
+		fmt.Print("Message from server:", message)
 	}
 }
