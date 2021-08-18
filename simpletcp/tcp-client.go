@@ -21,14 +21,14 @@ func main() {
 
 		text, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err.Error())
 		}
 
 		fmt.Fprintf(conn, text + "\n")
 
 		message, err := bufio.NewReader(conn).ReadString('\n')
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err.Error())
 		}
 
 		fmt.Print("Message from server:", message)
