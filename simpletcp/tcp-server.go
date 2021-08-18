@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/golang/glog"
 	"io"
 	"log"
 	"net"
@@ -21,23 +20,22 @@ func main() {
 	go processSignals(cancelFunc)
 
 	if err := listenAndHandle(ctx); err != nil {
-		log.Fatal(err)
+		log.Print(err.Error())
 	}
 }
 
 func processSignals(cancelFunc context.CancelFunc) {
-	signalChan := make(chan os.Signal)
+	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 
 	for {
 		sig := <-signalChan
 		switch sig {
-
-		case os.Interrupt:
-			log.Println("Signal SIGINT is received, probably due to `Ctrl-C`, exiting ...")
-			cancelFunc()
-			return
-		}
+			case os.Interrupt:
+				log.Println("Signal SIGINT is received, probably due to `Ctrl-C`, exiting ...")
+				cancelFunc()
+				return
+			}
 	}
 }
 
@@ -47,47 +45,45 @@ func listenAndHandle(ctx context.Context) error {
 		return err
 	}
 
-	l, err := net.ListenTCP("tcp", localAddr) // return (*TCPListener, error)
+	l, err := net.ListenTCP("tcp", localAddr)
 	if err != nil {
 		return err
 	}
 
 	defer l.Close()
-	log.Println("Start listening on the TCP socket", PORT, ".")
+	log.Println("Start listening on the TCP socket", PORT)
 
 	for {
 		select {
-		case <-ctx.Done():
-			log.Println("Stop listening on the TCP socket", PORT, ".")
-			return nil
-
-		default:
-			if err := l.SetDeadline(time.Now().Add(time.Second * 10)); err != nil {
-				return err
-			}
-
-			conn, err := l.Accept()
-			if err != nil {
-				if os.IsTimeout(err) {
-					continue
+			case <-ctx.Done():
+				log.Println("Stop listening on the TCP socket", PORT)
+				return nil
+			default:
+				if err := l.SetDeadline(time.Now().Add(time.Second * 10)); err != nil {
+					return err
 				}
-				return err
-			}
 
-			log.Println("New connection to the listening TCP socket", PORT, ".")
+				conn, err := l.Accept()
+				if err != nil {
+					if os.IsTimeout(err) {
+						continue
+					}
+					return err
+				}
 
-			go handleConnection(conn)
+				log.Println("New connection to the listening TCP socket", PORT, ".")
+
+				go handleConnection(conn)
 		}
 	}
 }
 
 func handleConnection(conn net.Conn) error {
-	for {
-		time.Sleep(time.Second * 5)
-		if _, err := io.Copy(conn, conn); err != nil {
-			glog.Error(err.Error())
-			return err
-		}
-		return nil
+	time.Sleep(time.Second * 5)
+	if _, err := io.Copy(conn, conn); err != nil {
+		log.Print(err.Error())
+		return err
 	}
+
+	return nil
 }
